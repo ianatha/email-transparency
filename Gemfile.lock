@@ -221,6 +221,7 @@ DEPENDENCIES
   google-api-client (= 0.9.pre3)
   jbuilder (~> 2.0)
   jquery-rails
+  mail
   omniauth (~> 1.2.2)
   omniauth-google-oauth2
   rails (= 4.2.4)

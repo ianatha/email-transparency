@@ -1,5 +1,6 @@
 require 'signet/oauth_2/client'
 require 'google/apis/gmail_v1'
+require 'mail'
 
 class SyncController < ApplicationController
   def gmail_service_from_account_link_id(account_link_id)
@@ -11,6 +12,11 @@ class SyncController < ApplicationController
     return gmail
   end
 
+  def get_message_id(message_raw)
+    email = Mail.new(message_raw)
+    puts pp(email.headers)
+    return email.header['Message-Id']
+  end
 
   def insert_email_in_user()
     thread_mapping = {}
@@ -46,6 +52,9 @@ class SyncController < ApplicationController
       message_ids.each do |message_id|
         from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
           puts message
+
+          message_id = get_message_id(message.raw)
+
           transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
           transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + [ "INBOX", "UNREAD" ]
           transcribed_message.thread_id = thread_mapping[message.thread_id] if thread_mapping[message.thread_id]

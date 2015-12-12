@@ -52,3 +52,5 @@ gem 'devise' # user authentication
 
 gem 'google-api-client', '0.9.pre3' # access to gmail api
 gem 'signet' # oauth headers for google-api-client
+
+gem 'mail' # parse email headers
