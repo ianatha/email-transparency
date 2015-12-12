@@ -45,11 +45,10 @@ group :development do
   gem 'spring'
 end
 
-gem 'omniauth', '~> 1.2.2'
+gem 'omniauth', '~> 1.2.2' # linking with oauth2 accounts
 gem 'omniauth-google-oauth2'
 
-gem 'devise'
+gem 'devise' # user authentication
 
-gem 'google-api-client', '0.9.pre3'
-
-gem 'signet'
+gem 'google-api-client', '0.9.pre3' # access to gmail api
+gem 'signet' # oauth headers for google-api-client
