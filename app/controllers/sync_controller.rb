@@ -7,7 +7,19 @@ Google::Apis.logger.level = Logger::WARN
 class SyncController < ApplicationController
   def gmail_service_from_account_link(account_link)
     gmail = Google::Apis::GmailV1::GmailService.new
-    oauth_client = Signet::OAuth2::Client.new()
+    oauth_client = Signet::OAuth2::Client.new(
+      :authorization_uri => 'https://accounts.google.com/o/oauth2/auth',
+      :token_credential_uri =>  'https://www.googleapis.com/oauth2/v3/token',
+      :client_id => ENV["GOOGLE_CLIENT_ID"],
+      :client_secret => ENV["GOOGLE_CLIENT_SECRET"],
+      :refresh_token => account_link.credentials[:refresh_token],
+    )
+    if Time.at(account_link.credentials[:expires_at]) < Time.now
+      result = oauth_client.fetch_access_token
+      account_link.credentials[:token] = result['access_token']
+      account_link.credentials[:expires_at] = (Time.now + result['expires_in']).to_i
+      account_link.save
+    end
     oauth_client.access_token = account_link.credentials[:token]
     gmail.authorization = oauth_client
     return gmail
