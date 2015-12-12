@@ -36,6 +36,7 @@ class SyncController < ApplicationController
 
     from_account_link = current_user.account_link.find(params[:from_account_id])
     to_account_link = current_user.account_link.find(params[:to_account_id])
+    raise "Can't sync to the same account" if from_account_link == to_account_link
 
     from_gmail = gmail_service_from_account_link(from_account_link)
     to_gmail = gmail_service_from_account_link(to_account_link)
