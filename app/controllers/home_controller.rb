@@ -33,34 +33,45 @@ class HomeController < ApplicationController
 
   def insert_email_in_user()
     thread_mapping = {}
-    
+
     # https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
     from_gmail = gmail_service_from_account_link_id(params[:from_account_id])
     to_gmail = gmail_service_from_account_link_id(params[:to_account_id])
 
-    from_sync_label_id = from_gmail.list_user_labels('me').labels.select { |x| x.name == "from_sync" }.map { |x| x.id }.first
-    if not from_sync_label_id
+    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.start_with? "mb/" }
+    from_sync_label_names = from_sync_labels.map { |x| x.id }
+    if not from_sync_label_ids
       raise "Couldn't find label"
     end
 
-    to_sync_label_id = to_gmail.list_user_labels('me').labels.select { |x| x.name == "to_sync" }.map { |x| x.id }.first
-    if not to_sync_label_id
-      new_label = to_gmail.create_user_label('me', Google::Apis::GmailV1::Label.new(name: "to_sync"))
-      to_sync_label_id = new_label.id
+    to_sync_labels = to_gmail.list_user_labels('me').labels.select { |x| from_sync_label_names.has?(x.name) }
+    to_sync_label_names = to_sync_labels.map { |x| x.id }
+
+    label_mappings = {}
+
+    from_sync_label_names.each do |label| 
+      if not to_sync_label_names.has?(label)
+        new_label = to_gmail.create_user_label('me', Google::Apis::GmailV1::Label.new(name: label))
+        label_mappings[label] = new_label.id
+      else 
+        label_mappings[label] = to_sync_labels.select { |x| x.name == label }.first.id
+      end
     end
 
-    messages = from_gmail.list_user_messages('me', label_ids: [from_sync_label_id]).messages
+    message_ids = from_gmail.list_user_messages('me', label_ids: from_sync_labels.map { |x| x.id }).messages
     message_count = 0
-    messages.each do |message_descriptor|
-      message = from_gmail.get_user_message('me', message_descriptor.id, format: "RAW")
-      transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
-      transcribed_message.label_ids = [to_sync_label_id]
-      if thread_mapping[message.thread_id]
-        transcribed_message.thread_id = thread_mapping[message.thread_id]
+
+    from_gmail.batch do |from_gmail|
+      message_ids.each do |message_id|
+        from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
+          transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
+          transcribed_message.label_ids = [label_mappings.first]
+          transcribed_message.thread_id = thread_mapping[message.thread_id] if thread_mapping[message.thread_id]
+          inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+          thread_mapping[message.thread_id] = inserted_message.thread_id
+          message_count = message_count + 1
+        end
       end
-      inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
-      thread_mapping[message.thread_id] = inserted_message.thread_id
-      message_count = message_count + 1
     end
 
     render json: {
