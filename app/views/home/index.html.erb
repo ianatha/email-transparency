@@ -1,0 +1,14 @@
+<h1>Home#index</h1>
+
+
+<div>
+	<ul>
+		<% current_user.account_link.each do |linked_account| %>
+		<li><a href="insert/<%=linked_account.id%>"><%= linked_account.username %> (<%= linked_account.provider %>)</a></li>
+		<% end %>
+	</ul>
+</div>
+
+<div>
+	<a href="/auth/google_oauth2">Link a Google Account</a>
+</div>
