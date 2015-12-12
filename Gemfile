@@ -47,6 +47,7 @@ end
 
 gem 'omniauth', '~> 1.2.2' # linking with oauth2 accounts
 gem 'omniauth-google-oauth2'
+gem 'representable', '~> 2.3.0'
 
 gem 'devise' # user authentication
 
