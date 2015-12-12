@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  from_account_link_id: 1
+  from_thread_id: MyString
+  to_account_link_id: 1
+  to_thread_id: MyString
+
+two:
+  from_account_link_id: 1
+  from_thread_id: MyString
+  to_account_link_id: 1
+  to_thread_id: MyString

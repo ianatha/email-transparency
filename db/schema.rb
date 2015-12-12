@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151212212258) do
+ActiveRecord::Schema.define(version: 20151212214357) do
 
   create_table "account_links", force: :cascade do |t|
     t.string   "type"
@@ -34,6 +34,15 @@ ActiveRecord::Schema.define(version: 20151212212258) do
 
   add_index "message_id_mappings", ["account_link_id"], name: "index_message_id_mappings_on_account_link_id"
   add_index "message_id_mappings", ["email_message_id"], name: "index_message_id_mappings_on_email_message_id"
+
+  create_table "thread_id_mappings", force: :cascade do |t|
+    t.integer  "from_account_link_id"
+    t.string   "from_thread_id"
+    t.integer  "to_account_link_id"
+    t.string   "to_thread_id"
+    t.datetime "created_at",           null: false
+    t.datetime "updated_at",           null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string   "email",                  default: "", null: false
