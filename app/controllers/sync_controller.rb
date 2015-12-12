@@ -31,7 +31,7 @@ class SyncController < ApplicationController
   end
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
-  def insert_email_in_user()
+  def sync()
     message_count = 0
 
     from_account_link = current_user.account_link.find(params[:from_account_id])
