@@ -49,13 +49,19 @@ class SyncController < ApplicationController
     message_ids = from_gmail.list_user_messages('me', label_ids: from_sync_labels.map { |x| x.id }).messages
     message_count = 0
 
+    extra_labels = if Rails.env.production?
+      [ "INBOX", "UNREAD" ]
+    else
+      []
+    end
+
     from_gmail.batch do |from_gmail|
       message_ids.each do |message_id|
         from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
           message_id = get_message_id(message.raw)
 
           transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
-          transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + [ "INBOX", "UNREAD" ]
+          transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + extra_labels
           transcribed_message.thread_id = thread_mapping[message.thread_id] if thread_mapping[message.thread_id]
           inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
           thread_mapping[message.thread_id] = inserted_message.thread_id
