@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  email_message_id: MyString
+  account_link_id: 1
+  provider_message_id: MyString
+  provider_thread_id: MyString
+
+two:
+  email_message_id: MyString
+  account_link_id: 1
+  provider_message_id: MyString
+  provider_thread_id: MyString
