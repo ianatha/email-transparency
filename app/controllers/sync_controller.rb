@@ -20,6 +20,8 @@ class SyncController < ApplicationController
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
   def insert_email_in_user()
+    message_count = 0
+
     from_account_link = current_user.account_link.find(params[:from_account_id])
     to_account_link = current_user.account_link.find(params[:to_account_id])
 
@@ -46,8 +48,7 @@ class SyncController < ApplicationController
       end
     end
 
-    message_ids = from_gmail.list_user_messages('me', label_ids: from_sync_labels.map { |x| x.id }).messages
-    message_count = 0
+    thread_ids = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads.map{ |x| x.id }
 
     extra_labels = if Rails.env.production?
       [ "INBOX", "UNREAD" ]
@@ -55,8 +56,19 @@ class SyncController < ApplicationController
       []
     end
 
+    from_message_ids = []
     from_gmail.batch do |from_gmail|
-      message_ids.each do |message_id|
+      thread_ids.each do |thread_id|
+        from_gmail.get_user_thread('me', thread_id, format: 'minimal') do |thread, err|
+          raise err if err
+
+          from_message_ids = from_message_ids + thread.messages
+        end
+      end
+    end
+
+    from_gmail.batch do |from_gmail|
+      from_message_ids.each do |message_id|
         from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
           raise err if err
 
