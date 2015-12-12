@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151212214357) do
+ActiveRecord::Schema.define(version: 20151212233825) do
 
   create_table "account_links", force: :cascade do |t|
     t.string   "type"
@@ -21,6 +21,7 @@ ActiveRecord::Schema.define(version: 20151212214357) do
     t.datetime "created_at",              null: false
     t.datetime "updated_at",              null: false
     t.string   "provider",    limit: 255
+    t.string   "history_id"
   end
 
   create_table "message_id_mappings", force: :cascade do |t|
