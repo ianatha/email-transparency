@@ -20,8 +20,6 @@ class SyncController < ApplicationController
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
   def insert_email_in_user()
-    thread_mapping = {}
-
     from_account_link = current_user.account_link.find(params[:from_account_id])
     to_account_link = current_user.account_link.find(params[:to_account_id])
 
@@ -73,16 +71,23 @@ class SyncController < ApplicationController
           to_message_mapping = to_account_link.message_id_mapping.where(email_message_id: email_message_id).first_or_create do |message_mapping|
             # if we're in here, it means the message hasn't been 'mapped' before
 
+            # have we mapped this thread before?
+            mapped_thread_id = ThreadIdMapping.where(from_account_link_id: from_account_link.id, from_thread_id: message_id.thread_id, to_account_link_id: to_account_link.id).first_or_create
+
             transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
             transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + extra_labels
-            transcribed_message.thread_id = thread_mapping[message.thread_id] if thread_mapping[message.thread_id]
+            transcribed_message.thread_id = mapped_thread_id.to_thread_id if mapped_thread_id.to_thread_id
 
             inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
-            thread_mapping[message.thread_id] = inserted_message.thread_id
+
             message_count = message_count + 1
+
+            mapped_thread_id.to_thread_id = inserted_message.thread_id
+            mapped_thread_id.save
 
             message_mapping.provider_message_id = inserted_message.id
             message_mapping.provider_thread_id = inserted_message.thread_id
+            message_mapping.save
           end
         end
       end
