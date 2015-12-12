@@ -61,7 +61,9 @@ class SyncController < ApplicationController
       end
     end
 
-    thread_ids = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads.map{ |x| x.id }
+    threads = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads
+    thread_ids = threads.map{ |x| x.id }
+    thread_history_id = threads.map { |x| x.history_id.to_i }.max
 
     extra_labels = if Rails.env.production?
       [ "INBOX", "UNREAD" ]
@@ -117,6 +119,9 @@ class SyncController < ApplicationController
         end
       end
     end
+
+    from_account_link.history_id = thread_history_id
+    from_account_link.save
 
     render json: {
       message_count: message_count,
