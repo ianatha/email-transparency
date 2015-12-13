@@ -19,13 +19,15 @@
 
 <div class="user">
 	<% if user_signed_in? %>
+  <li><%= current_user.email %>
   <li>
   <%= link_to('Logout', destroy_user_session_path, :method => :delete) %>        
   </li>
 <% else %>
   <li>
-  <%= link_to('Login', new_user_session_path)  %>  
+  <%= link_to('Login', new_user_session_path)  %>
   </li>
+  <li><a href="/auth/google_oauth2">Login with Google</a></li>
 <% end %>
 </div>
 
