@@ -262,6 +262,22 @@ class SyncController < ApplicationController
     render json: result
   end
 
+  def access_check()
+    result = {}
+    AccountLink.all.each do |acct|
+      begin
+        from_gmail = gmail_service_from_account_link(acct)
+        from_gmail.get_user_profile('me')
+        result[acct.username] = "ok"
+      rescue StandardError => boom
+        result[acct.username] = "fail: #{boom}"
+      end
+    end
+
+    render json: result
+  end
+
+
   def reset_history_id()
     AccountLink.all.each do |account|
       account.history_id = nil

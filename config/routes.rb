@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   
   get "/home" => "home#loggedin_index"
 
+  get "/access_check" => "sync#access_check"
   post "/sync" => "sync#sync"
   post "/sync_all" => "sync#sync_all"
   post "/reset_history_id" => "sync#reset_history_id"
