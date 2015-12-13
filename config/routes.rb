@@ -7,7 +7,8 @@ Rails.application.routes.draw do
   
   get "/home" => "home#index"
 
-  post "/sync" => "sync#sync"
+  post "/sync" => "sync#sync_via_query"
+  post "/fetch_history" => "sync#sync_via_history"
 
   get "/auth/:provider/callback" => "home#link_account"
   # The priority is based upon order of creation: first created -> highest priority.

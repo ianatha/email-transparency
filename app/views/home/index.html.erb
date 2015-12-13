@@ -1,14 +1,29 @@
 <h1>Home#index</h1>
 
 
-<%= form_tag("/sync", method: "post") do %>
-	From:
-		<%= select_tag(:from_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
-	To:
-		<%= select_tag(:to_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
+<div>
+	<h1>Sync</h1>
+	<%= form_tag("/sync", method: "post") do %>
+		From:
+			<%= select_tag(:from_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
+		To:
+			<%= select_tag(:to_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
 
-  <%= submit_tag("Sync") %>
-<% end %>
+	  <%= submit_tag("Sync") %>
+	<% end %>
+</div>
+
+<div>
+	<h1>Fetch History</h1>
+	<%= form_tag("/fetch_history", method: "post") do %>
+		From:
+			<%= select_tag(:from_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
+		To:
+			<%= select_tag(:to_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
+
+	  <%= submit_tag("Fetch History") %>
+	<% end %>
+</div>
 
 <div>
 	<a href="/auth/google_oauth2">Link a Google Account</a>
