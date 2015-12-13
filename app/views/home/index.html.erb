@@ -13,15 +13,21 @@
 	<% end %>
 </div>
 
-<div>
-	<h1>Fetch History</h1>
-	<%= form_tag("/fetch_history", method: "post") do %>
-		From:
-			<%= select_tag(:from_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
-		To:
-			<%= select_tag(:to_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
 
-	  <%= submit_tag("Fetch History") %>
+
+<div>
+	<h1>Sync</h1>
+	<%= form_tag("/sync_all", method: "post") do %>
+	  <%= submit_tag("Sync All") %>
+	<% end %>
+</div>
+
+
+
+<div>
+	<h1>Reset History</h1>
+	<%= form_tag("/reset_history_id", method: "post") do %>
+	  <%= submit_tag("Reset History IDs") %>
 	<% end %>
 </div>
 

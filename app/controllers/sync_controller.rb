@@ -79,7 +79,10 @@ class SyncController < ApplicationController
             if message_already_in_to_gmail and message_already_in_to_gmail.messages
               message_already_in_to_gmail = message_already_in_to_gmail.messages.first
 
-              to_gmail.modify_message('me', message_already_in_to_gmail.id, Google::Apis::GmailV1::ModifyMessageRequest.new(add_label_ids: message.label_ids.map { |label_id| label_mappings[label_id] }))
+              label_ids_to_have = message.label_ids.map { |label_id| label_mappings[label_id] }.compact
+              if label_ids_to_have.size > 0
+                to_gmail.modify_message('me', message_already_in_to_gmail.id, Google::Apis::GmailV1::ModifyMessageRequest.new(add_label_ids: label_ids_to_have))
+              end
 
               if mapped_thread_id.from_account_link_id == from_account_link.id
                 mapped_thread_id.to_thread_id = message_already_in_to_gmail.thread_id
@@ -92,9 +95,15 @@ class SyncController < ApplicationController
             else
               transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
               transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + extra_labels
-              transcribed_message.thread_id = mapped_thread_id.to_thread_id if mapped_thread_id.to_thread_id
+              if mapped_thread_id.to_account_link_id == to_account_link.id and mapped_thread_id.to_thread_id
+                transcribed_message.thread_id = mapped_thread_id.to_thread_id
+              elsif mapped_thread_id.from_account_link_id = to_account_link.id and mapped_thread_id.from_thread_id
+                transcribed_message.thread_id = mapped_thread_id.from_thread_id
+              end
 
               inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+
+              message_count = message_count + 1
 
               if mapped_thread_id.from_account_link_id == from_account_link.id
                 mapped_thread_id.to_thread_id = inserted_message.thread_id
@@ -105,8 +114,7 @@ class SyncController < ApplicationController
               message_mapping.provider_message_id = inserted_message.id
               message_mapping.provider_thread_id = inserted_message.thread_id
             end
-
-            message_count = message_count + 1
+            
             mapped_thread_id.save
             message_mapping.save
           end
@@ -118,9 +126,7 @@ class SyncController < ApplicationController
   end
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
-  def sync_via_query()
-    from_account_link = current_user.account_link.find(params[:from_account_id])
-    to_account_link = current_user.account_link.find(params[:to_account_id])
+  def sync_via_query(from_account_link, to_account_link)
     raise "Can't sync to the same account" if from_account_link == to_account_link
 
     from_gmail = gmail_service_from_account_link(from_account_link)
@@ -151,7 +157,7 @@ class SyncController < ApplicationController
       thread_history_id = threads.map { |x| x.history_id.to_i }.max
 
       from_message_ids = threads_to_message_ids(from_gmail, threads)
-      message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, (Rails.env.production? ? [ "INBOX", "UNREAD" ] : []))
+      message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, [ "INBOX", "UNREAD" ])
 
       from_account_link.history_id = thread_history_id
       from_account_link.save
@@ -161,20 +167,20 @@ class SyncController < ApplicationController
       0
     end
 
-
-    render json: {
+    result = {
       message_count: message_count,
       from: {
         username: from_account_link.username,
         history_id: from_account_link.history_id,
       },
-      to: to_account_link.username
+      to: to_account_link.username,
+      method: "query",
     }
+
+    return result
   end
 
-  def sync_via_history()
-    from_account_link = current_user.account_link.find(params[:from_account_id])
-    to_account_link = current_user.account_link.find(params[:to_account_id])
+  def sync_via_history(from_account_link, to_account_link)
     raise "Can't sync to the same account" if from_account_link == to_account_link
 
     from_gmail = gmail_service_from_account_link(from_account_link)
@@ -231,13 +237,55 @@ class SyncController < ApplicationController
     from_account_link.history_id = histories.history_id
     from_account_link.save
 
-    render json: {
+    result = {
       message_count: message_count,
       from: {
         username: from_account_link.username,
         history_id: from_account_link.history_id,
       },
-      to: to_account_link.username
+      to: to_account_link.username,
+      method: "history",
     }
+    
+    return result
+  end
+
+  def sync(from_account_link = nil, to_account_link = nil)
+    from_account_link = from_account_link || current_user.account_link.find(params[:from_account_id])
+    to_account_link = to_account_link || current_user.account_link.find(params[:to_account_id])
+
+    if not from_account_link.history_id
+      result = sync_via_query(from_account_link, to_account_link)
+    else
+      result = sync_via_history(from_account_link, to_account_link)
+    end
+
+    if params[:from_account_id]
+      render json: result
+    else
+      return result
+    end
+  end
+
+  def sync_all()
+    result = []
+    AccountLink.all.each do |from|
+      AccountLink.all.each do |to|
+        if from != to
+          puts "Syncing #{from} -> #{to}"
+          result = result + [sync(from, to)]
+        end
+      end
+    end
+
+    render json: result
+  end
+
+  def reset_history_id()
+    AccountLink.all.each do |account|
+      account.history_id = nil
+      account.save
+    end
+    render json: true
   end
 end
