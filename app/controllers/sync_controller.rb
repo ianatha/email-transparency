@@ -68,21 +68,46 @@ class SyncController < ApplicationController
             # if we're in here, it means the message hasn't been 'mapped' before
 
             # have we mapped this thread before?
-            mapped_thread_id = ThreadIdMapping.where(from_account_link_id: from_account_link.id, from_thread_id: message_id.thread_id, to_account_link_id: to_account_link.id).first_or_create
+            mapped_thread_id = ThreadIdMapping.where(from_account_link_id: from_account_link.id, from_thread_id: message_id.thread_id, to_account_link_id: to_account_link.id).first
+            if not mapped_thread_id
+              mapped_thread_id = ThreadIdMapping.where(to_account_link_id: from_account_link.id, to_thread_id: message_id.thread_id, from_account_link_id: to_account_link.id).first_or_create
+            end
 
-            transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
-            transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + extra_labels
-            transcribed_message.thread_id = mapped_thread_id.to_thread_id if mapped_thread_id.to_thread_id
+            # we should first check if the email already exists in the target account
+            message_already_in_to_gmail = to_gmail.list_user_messages('me', q: "rfc822msgid:#{email_message_id}")
+            raise "More than one message with the same Message-Id. Shenanings!" if message_already_in_to_gmail.messages and message_already_in_to_gmail.messages.size > 1
+            if message_already_in_to_gmail and message_already_in_to_gmail.messages
+              message_already_in_to_gmail = message_already_in_to_gmail.messages.first
 
-            inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+              to_gmail.modify_message('me', message_already_in_to_gmail.id, Google::Apis::GmailV1::ModifyMessageRequest.new(add_label_ids: message.label_ids.map { |label_id| label_mappings[label_id] }))
+
+              if mapped_thread_id.from_account_link_id == from_account_link.id
+                mapped_thread_id.to_thread_id = message_already_in_to_gmail.thread_id
+              elsif mapped_thread_id.from_account_link_id == to_account_link.id
+                mapped_thread_id.from_thread_id = message_already_in_to_gmail.thread_id
+              end
+
+              message_mapping.provider_message_id = message_already_in_to_gmail.id
+              message_mapping.provider_thread_id = message_already_in_to_gmail.thread_id
+            else
+              transcribed_message = Google::Apis::GmailV1::Message.new(raw: message.raw)
+              transcribed_message.label_ids = message.label_ids.map { |label_id| label_mappings[label_id] } + extra_labels
+              transcribed_message.thread_id = mapped_thread_id.to_thread_id if mapped_thread_id.to_thread_id
+
+              inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+
+              if mapped_thread_id.from_account_link_id == from_account_link.id
+                mapped_thread_id.to_thread_id = inserted_message.thread_id
+              elsif mapped_thread_id.from_account_link_id == to_account_link.id
+                mapped_thread_id.from_thread_id = inserted_message.thread_id
+              end
+
+              message_mapping.provider_message_id = inserted_message.id
+              message_mapping.provider_thread_id = inserted_message.thread_id
+            end
 
             message_count = message_count + 1
-
-            mapped_thread_id.to_thread_id = inserted_message.thread_id
             mapped_thread_id.save
-
-            message_mapping.provider_message_id = inserted_message.id
-            message_mapping.provider_thread_id = inserted_message.thread_id
             message_mapping.save
           end
         end
