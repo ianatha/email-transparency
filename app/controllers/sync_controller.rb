@@ -126,38 +126,14 @@ class SyncController < ApplicationController
   end
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
-  def sync_via_query(from_account_link, to_account_link)
-    raise "Can't sync to the same account" if from_account_link == to_account_link
-
-    from_gmail = gmail_service_from_account_link(from_account_link)
-    to_gmail = gmail_service_from_account_link(to_account_link)
-
-    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.downcase.start_with? "mb/" }
-    from_sync_label_names = from_sync_labels.map { |x| x.name }
-    if not from_sync_label_names
-      raise "Couldn't find label"
-    end
-
-    to_sync_labels = to_gmail.list_user_labels('me').labels.select { |x| from_sync_label_names.include?(x.name) }
-    to_sync_label_names = to_sync_labels.map { |x| x.name }
-
-    label_mappings = {}
-
-    from_sync_labels.each do |label|
-      if not to_sync_label_names.include?(label.name)
-        new_label = to_gmail.create_user_label('me', Google::Apis::GmailV1::Label.new(name: label.name))
-        label_mappings[label.id] = new_label.id
-      else
-        label_mappings[label.id] = to_sync_labels.select { |x| x.name == label.name }.first.id
-      end
-    end
-
+  def sync_via_query(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
     threads = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads
+
     message_count = if threads 
       thread_history_id = threads.map { |x| x.history_id.to_i }.max
 
       from_message_ids = threads_to_message_ids(from_gmail, threads)
-      message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, [ "INBOX", "UNREAD" ])
+      message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, extra_labels)
 
       from_account_link.history_id = thread_history_id
       from_account_link.save
@@ -180,35 +156,11 @@ class SyncController < ApplicationController
     return result
   end
 
-  def sync_via_history(from_account_link, to_account_link)
-    raise "Can't sync to the same account" if from_account_link == to_account_link
-
-    from_gmail = gmail_service_from_account_link(from_account_link)
-    to_gmail = gmail_service_from_account_link(to_account_link)
-
-    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.downcase.start_with? "mb/" }
-    from_sync_label_names = from_sync_labels.map { |x| x.name }
-    if not from_sync_label_names
-      raise "Couldn't find label"
-    end
-
-    to_sync_labels = to_gmail.list_user_labels('me').labels.select { |x| from_sync_label_names.include?(x.name) }
-    to_sync_label_names = to_sync_labels.map { |x| x.name }
-
-    label_mappings = {}
-
-    from_sync_labels.each do |label|
-      if not to_sync_label_names.include?(label.name)
-        new_label = to_gmail.create_user_label('me', Google::Apis::GmailV1::Label.new(name: label.name))
-        label_mappings[label.id] = new_label.id
-      else
-        label_mappings[label.id] = to_sync_labels.select { |x| x.name == label.name }.first.id
-      end
-    end
-
+  def sync_via_history(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
     histories = from_gmail.list_user_histories('me', start_history_id: from_account_link.history_id)
 
     from_message_ids = []
+
     if histories.history
       histories.history.each do |event|
         if event.messages_added then 
@@ -232,7 +184,7 @@ class SyncController < ApplicationController
       end
     end
 
-    message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, (Rails.env.production? ? [ "INBOX", "UNREAD" ] : []))
+    message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, extra_labels)
 
     from_account_link.history_id = histories.history_id
     from_account_link.save
@@ -254,10 +206,37 @@ class SyncController < ApplicationController
     from_account_link = from_account_link || current_user.account_link.find(params[:from_account_id])
     to_account_link = to_account_link || current_user.account_link.find(params[:to_account_id])
 
+    raise "Can't sync to the same account" if from_account_link == to_account_link
+
+    from_gmail = gmail_service_from_account_link(from_account_link)
+    to_gmail = gmail_service_from_account_link(to_account_link)
+
+    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.downcase.start_with? "mb/" }
+    from_sync_label_names = from_sync_labels.map { |x| x.name }
+    if not from_sync_label_names
+      raise "Couldn't find label"
+    end
+
+    to_sync_labels = to_gmail.list_user_labels('me').labels.select { |x| from_sync_label_names.include?(x.name) }
+    to_sync_label_names = to_sync_labels.map { |x| x.name }
+
+    label_mappings = {}
+
+    from_sync_labels.each do |label|
+      if not to_sync_label_names.include?(label.name)
+        new_label = to_gmail.create_user_label('me', Google::Apis::GmailV1::Label.new(name: label.name))
+        label_mappings[label.id] = new_label.id
+      else
+        label_mappings[label.id] = to_sync_labels.select { |x| x.name == label.name }.first.id
+      end
+    end
+
+    extra_labels = [ "UNREAD", "INBOX" ]
+
     if not from_account_link.history_id
-      result = sync_via_query(from_account_link, to_account_link)
+      result = sync_via_query(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
     else
-      result = sync_via_history(from_account_link, to_account_link)
+      result = sync_via_history(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
     end
 
     if params[:from_account_id]

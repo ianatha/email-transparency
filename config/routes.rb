@@ -1,15 +1,12 @@
 Rails.application.routes.draw do
-  get 'home/index'
-
   devise_for :users
 
   root to: "home#loggedout_index"
   
   get "/home" => "home#loggedin_index"
 
-  post "/sync_all" => "sync#sync_all"
   post "/sync" => "sync#sync"
-
+  post "/sync_all" => "sync#sync_all"
   post "/reset_history_id" => "sync#reset_history_id"
 
   get "/auth/:provider/callback" => "home#link_account"
