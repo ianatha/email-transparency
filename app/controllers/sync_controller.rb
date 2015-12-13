@@ -278,6 +278,12 @@ class SyncController < ApplicationController
     render json: result
   end
 
+  def add_watch(account_link = nil)
+    account_link = account_link || current_user.account_link.find(params[:account_link_id])
+    gmail = gmail_service_from_account_link(account_link)
+    result = gmail.watch('me', Google::Apis::GmailV1::WatchRequest.new(topic_name: "projects/email-transparency/topics/gmail-api"))
+    render json: result
+  end
 
   def reset_history_id()
     AccountLink.all.each do |account|

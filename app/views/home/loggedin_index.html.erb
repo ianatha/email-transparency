@@ -13,8 +13,6 @@
 	<% end %>
 </div>
 
-
-
 <div>
 	<h1>Sync</h1>
 	<%= form_tag("/sync_all", method: "post") do %>
@@ -22,12 +20,20 @@
 	<% end %>
 </div>
 
-
-
 <div>
 	<h1>Reset History</h1>
 	<%= form_tag("/reset_history_id", method: "post") do %>
 	  <%= submit_tag("Reset History IDs") %>
+	<% end %>
+</div>
+
+<div>
+	<h1>Add Watch</h1>
+	<%= form_tag("/add_watch", method: "post") do %>
+		Account:
+			<%= select_tag(:account_link_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
+
+	  <%= submit_tag("Add Watch") %>
 	<% end %>
 </div>
 

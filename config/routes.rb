@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get "/home" => "home#loggedin_index"
 
   get "/access_check" => "sync#access_check"
+  post "/add_watch" => "sync#add_watch"
   post "/sync" => "sync#sync"
   post "/sync_all" => "sync#sync_all"
   post "/reset_history_id" => "sync#reset_history_id"
@@ -13,7 +14,7 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback" => "home#link_account"
 
   post "/z/pubsub" => "home#pubsub"
-  
+
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 
