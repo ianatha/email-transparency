@@ -48,8 +48,13 @@ class HomeController < ApplicationController
         end
         account_link.update(credentials: new_credentials)
       else
-        account_link = current_user.account_link.new(provider: auth[:provider], username: auth[:info][:email], credentials: auth[:credentials])
-        flash[:notice] = "inserted new link with #{auth[:provider]}"
+        if auth[:credentials][:refresh_token]
+          account_link = current_user.account_link.new(provider: auth[:provider], username: auth[:info][:email], credentials: auth[:credentials])
+          account_link.save
+          flash[:notice] = "You authorized Email Transparency to access #{auth[:info][:email]} at #{auth[:provider]}!"
+        else
+          flash[:error] = "The authorization for #{auth[:info][:email]} was broken. You should go to security.google.com/settings/u/0/security/permissions, delete Email Transparency, and relink your account."
+        end
       end
       redirect_to "/home"
     else
