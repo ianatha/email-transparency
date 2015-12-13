@@ -1,3 +1,5 @@
+require "base64"
+
 class HomeController < ApplicationController
   def loggedout_index
     if current_user == nil
@@ -10,6 +12,25 @@ class HomeController < ApplicationController
   def loggedin_index
     authenticate_user!
   end
+
+  def pubsub
+    subscription = params[:subscription]
+    if subscription == "projects/email-transparency/subscriptions/heroku-backend"
+      gmail_notification = JSON.parse(Base64.decode64(params[:message][:data]))
+      AccountLink.where(username: gmail_notification["emailAddress"]).each do |from|
+        AccountLink.all.each do |to|
+          if from != to
+            SyncController.new.sync(from, to)
+          end
+        end
+      end
+      render json: true, status: 200
+      return
+    end
+    render json: false, status: 404
+  end
+
+  skip_before_action :verify_authenticity_token
 
   def link_account
     auth = request.env["omniauth.auth"]

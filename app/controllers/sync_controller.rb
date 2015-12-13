@@ -210,6 +210,8 @@ class SyncController < ApplicationController
 
     raise "Can't sync to the same account" if from_account_link == to_account_link
 
+    puts "Syncing #{from_account_link} -> #{to_account_link}"
+
     from_gmail = gmail_service_from_account_link(from_account_link)
     to_gmail = gmail_service_from_account_link(to_account_link)
 
@@ -241,7 +243,7 @@ class SyncController < ApplicationController
       result = sync_via_history(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
     end
 
-    if params[:from_account_id]
+    if request && params[:from_account_id]
       render json: result
     else
       return result
@@ -253,7 +255,6 @@ class SyncController < ApplicationController
     AccountLink.all.each do |from|
       AccountLink.all.each do |to|
         if from != to
-          puts "Syncing #{from} -> #{to}"
           result = result + [sync(from, to)]
         end
       end
