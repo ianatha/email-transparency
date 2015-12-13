@@ -3,9 +3,9 @@ Rails.application.routes.draw do
 
   devise_for :users
 
-  root to: "application#index"
+  root to: "home#loggedout_index"
   
-  get "/home" => "home#index"
+  get "/home" => "home#loggedin_index"
 
   post "/sync_all" => "sync#sync_all"
   post "/sync" => "sync#sync"

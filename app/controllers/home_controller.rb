@@ -1,7 +1,14 @@
 class HomeController < ApplicationController
-  before_filter :authenticate_user!
+  def loggedout_index
+    if current_user == nil
+      render
+    else
+      redirect_to "/home"
+    end
+  end
 
-  def index
+  def loggedin_index
+    authenticate_user!
   end
 
   def link_account
