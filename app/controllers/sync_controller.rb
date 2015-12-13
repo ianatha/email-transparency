@@ -5,6 +5,8 @@ require 'mail'
 Google::Apis.logger.level = Logger::WARN
 
 class SyncController < ApplicationController
+  before_filter :authenticate_user!
+  
   def gmail_service_from_account_link(account_link)
     gmail = Google::Apis::GmailV1::GmailService.new
     oauth_client = Signet::OAuth2::Client.new(
