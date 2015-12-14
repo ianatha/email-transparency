@@ -1,7 +1,7 @@
 <h1>Email Transparency</h1>
 
 <div>
-	<h1>Your Groups</h1>
+	<h2>Your Groups</h2>
 	<ul>
 		<% current_user.groups.each do |group| %>
 		<li><%= group.name %>
@@ -12,7 +12,7 @@
 </div>
 
 <div>
-	<h1>Sync</h1>
+	<h2>Sync</h2>
 	<%= form_tag("/sync", method: "post") do %>
 		From:
 			<%= select_tag(:from_account_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
@@ -24,21 +24,21 @@
 </div>
 
 <div>
-	<h1>Sync</h1>
+	<h2>Sync All</h2>
 	<%= form_tag("/sync_all", method: "post") do %>
 	  <%= submit_tag("Sync All") %>
 	<% end %>
 </div>
 
 <div>
-	<h1>Reset History</h1>
+	<h2>Reset History</h2>
 	<%= form_tag("/reset_history_id", method: "post") do %>
 	  <%= submit_tag("Reset History IDs") %>
 	<% end %>
 </div>
 
 <div>
-	<h1>Add Watch</h1>
+	<h2>Add Watch</h2>
 	<%= form_tag("/add_watch", method: "post") do %>
 		Account:
 			<%= select_tag(:account_link_id, options_from_collection_for_select(current_user.account_link, :id, :username)) %>
@@ -48,12 +48,12 @@
 </div>
 
 <div>
-	<h1>Access Check</h1>
+	<h2>Access Check</h2>
 	<a href="/access_check">Access Check</a>
 </div>
 
 
 <div>
-	<h1>Link a Google Account</h1>
+	<h2>Link a Google Account</h2>
 	<a href="/auth/google_oauth2">Link a Google Account</a>
 </div>
