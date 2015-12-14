@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
   resources :groups
+  post "/groups/join" => "groups#join"
+
   devise_for :users, :controllers => {:registrations => "user_registration"}
 
   root to: "home#loggedout_index"

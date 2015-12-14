@@ -2,6 +2,11 @@
 
 <div>
 	<h2>Your Groups</h2>
+	<%= form_tag("/groups/join", method: "post") do %>
+	  <%= select_tag(:id, options_from_collection_for_select(Group.all, :id, :name)) %>
+      <%= submit_tag("Join Group") %>
+	<% end %>
+
 	<ul>
 		<% current_user.groups.each do |group| %>
 		<li><%= group.name %>
