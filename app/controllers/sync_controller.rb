@@ -195,7 +195,7 @@ class SyncController < ApplicationController
     from_gmail = from_account_link.to_gmail_service()
     to_gmail = to_account_link.to_gmail_service()
 
-    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.downcase.start_with? "mb/" }
+    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |label| from_account_link.user.groups.any? { |group| group.label_matches_publish_rules?(label.name) }}
     from_sync_label_names = from_sync_labels.map { |x| x.name }
     if not from_sync_label_names
       raise "Couldn't find label"
