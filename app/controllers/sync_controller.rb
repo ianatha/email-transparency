@@ -253,6 +253,9 @@ class SyncController < ApplicationController
       rescue StandardError => boom
         result[acct.username] = "fail: #{boom}"
       end
+      if not acct.credentials[:refresh_token]
+        result[acct.username] = " - missing refresh_token"
+      end
     end
 
     render json: result
