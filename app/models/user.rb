@@ -6,6 +6,8 @@ class User < ActiveRecord::Base
 
   has_many :account_link
 
+  has_and_belongs_to_many :groups
+
   def self.from_omniauth(auth)
     account_link = AccountLink.where(provider: auth[:provider], username: auth[:info][:email]).first
     if not account_link then

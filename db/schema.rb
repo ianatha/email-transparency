@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151214001341) do
+ActiveRecord::Schema.define(version: 20151214002139) do
 
   create_table "account_links", force: :cascade do |t|
     t.string   "type"
@@ -30,6 +30,14 @@ ActiveRecord::Schema.define(version: 20151214001341) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
+
+  create_table "groups_users", id: false, force: :cascade do |t|
+    t.integer "group_id", null: false
+    t.integer "user_id",  null: false
+  end
+
+  add_index "groups_users", ["group_id", "user_id"], name: "index_groups_users_on_group_id_and_user_id"
+  add_index "groups_users", ["user_id", "group_id"], name: "index_groups_users_on_user_id_and_group_id"
 
   create_table "message_id_mappings", force: :cascade do |t|
     t.string   "email_message_id"
