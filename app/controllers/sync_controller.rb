@@ -7,26 +7,6 @@ Google::Apis.logger.level = Logger::WARN
 class SyncController < ApplicationController
   before_filter :authenticate_user!
   
-  def gmail_service_from_account_link(account_link)
-    gmail = Google::Apis::GmailV1::GmailService.new
-    oauth_client = Signet::OAuth2::Client.new(
-      :authorization_uri => 'https://accounts.google.com/o/oauth2/auth',
-      :token_credential_uri =>  'https://www.googleapis.com/oauth2/v3/token',
-      :client_id => ENV["GOOGLE_CLIENT_ID"],
-      :client_secret => ENV["GOOGLE_CLIENT_SECRET"],
-      :refresh_token => account_link.credentials[:refresh_token],
-    )
-    if Time.at(account_link.credentials[:expires_at]) < Time.now
-      result = oauth_client.fetch_access_token
-      account_link.credentials[:token] = result['access_token']
-      account_link.credentials[:expires_at] = (Time.now + result['expires_in']).to_i
-      account_link.save
-    end
-    oauth_client.access_token = account_link.credentials[:token]
-    gmail.authorization = oauth_client
-    return gmail
-  end
-
   def get_message_id(message_raw)
     email = Mail.new(message_raw)
     return email.header['Message-Id']
@@ -212,8 +192,8 @@ class SyncController < ApplicationController
 
     puts "Syncing #{from_account_link} -> #{to_account_link}"
 
-    from_gmail = gmail_service_from_account_link(from_account_link)
-    to_gmail = gmail_service_from_account_link(to_account_link)
+    from_gmail = from_account_link.to_gmail_service()
+    to_gmail = to_account_link.to_gmail_service()
 
     from_sync_labels = from_gmail.list_user_labels('me').labels.select { |x| x.name.downcase.start_with? "mb/" }
     from_sync_label_names = from_sync_labels.map { |x| x.name }
@@ -267,7 +247,7 @@ class SyncController < ApplicationController
     result = {}
     AccountLink.all.each do |acct|
       begin
-        from_gmail = gmail_service_from_account_link(acct)
+        from_gmail = acct.to_gmail_service()
         from_gmail.get_user_profile('me')
         result[acct.username] = "ok"
       rescue StandardError => boom
@@ -280,7 +260,7 @@ class SyncController < ApplicationController
 
   def add_watch(account_link = nil)
     account_link = account_link || current_user.account_link.find(params[:account_link_id])
-    gmail = gmail_service_from_account_link(account_link)
+    gmail = account_link.to_gmail_service()
     result = gmail.watch('me', Google::Apis::GmailV1::WatchRequest.new(topic_name: "projects/email-transparency/topics/gmail-api"))
     render json: result
   end
