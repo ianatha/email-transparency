@@ -1,5 +1,15 @@
-<h1>Home#index</h1>
+<h1>Email Transparency</h1>
 
+<div>
+	<h1>Your Groups</h1>
+	<ul>
+		<% current_user.groups.each do |group| %>
+		<li><%= group.name %>
+			<pre><%= group.rules %></pre>
+		</li>
+		<% end %>
+	</ul>
+</div>
 
 <div>
 	<h1>Sync</h1>
