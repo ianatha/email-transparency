@@ -184,18 +184,15 @@ class SyncController < ApplicationController
     return result
   end
 
-  def sync(from_account_link = nil, to_account_link = nil)
-    from_account_link = from_account_link || current_user.account_link.find(params[:from_account_id])
-    to_account_link = to_account_link || current_user.account_link.find(params[:to_account_id])
-
+  def sync(from_account_link, to_account_link, group)
     raise "Can't sync to the same account" if from_account_link == to_account_link
 
-    puts "Syncing #{from_account_link} -> #{to_account_link}"
+    puts "Syncing #{from_account_link} -> #{to_account_link} in #{group}"
 
     from_gmail = from_account_link.to_gmail_service()
     to_gmail = to_account_link.to_gmail_service()
 
-    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |label| from_account_link.user.groups.any? { |group| group.label_matches_publish_rules?(label.name) }}
+    from_sync_labels = from_gmail.list_user_labels('me').labels.select { |label| group.label_matches_publish_rules?(label.name) }
     from_sync_label_names = from_sync_labels.map { |x| x.name }
     if not from_sync_label_names
       raise "Couldn't find label"
@@ -232,10 +229,15 @@ class SyncController < ApplicationController
 
   def sync_all()
     result = []
-    AccountLink.all.each do |from|
-      AccountLink.all.each do |to|
-        if from != to
-          result = result + [sync(from, to)]
+    Group.all.each do |group|
+      group.users.each do |from_user|
+        group.users.each do |to_user|
+          from_user.account_link.each do |from|
+            to_user.account_link.each do |to|
+              next if from == to
+              result = result + [sync(from, to, group)]
+            end
+          end
         end
       end
     end

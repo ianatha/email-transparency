@@ -18,12 +18,17 @@ class HomeController < ApplicationController
     if subscription == "projects/email-transparency/subscriptions/heroku-backend"
       gmail_notification = JSON.parse(Base64.decode64(params[:message][:data]))
       AccountLink.where(username: gmail_notification["emailAddress"]).each do |from|
-        AccountLink.all.each do |to|
-          if from != to
-            SyncController.new.sync(from, to)
+        from_user = from.user
+        from_user.groups.each do |group|
+          group.users.each do |to_user|
+            to_user.account_link.each do |to|
+              next if from == to
+              SyncController.new.sync(from, to, group)
+            end
           end
         end
       end
+
       render json: true, status: 200
       return
     end

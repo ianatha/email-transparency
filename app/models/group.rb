@@ -10,4 +10,8 @@ class Group < ActiveRecord::Base
 			return false
 		end
 	end
+
+	def to_s
+		"Group<#{id}:#{name}>"
+	end
 end
