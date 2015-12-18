@@ -38,6 +38,8 @@ class SyncController < ApplicationController
         from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
           raise err if err
 
+          next if message.label_ids.any? { |x| x == "DRAFT" }
+
           email_message_id = get_message_id(message.raw).value
 
           # have we seen this message before?
@@ -147,6 +149,8 @@ class SyncController < ApplicationController
       histories.history.each do |event|
         if event.messages_added then 
           event.messages_added.each do |message_added|
+            next if message_added.message.label_ids.any? { |x| x == "DRAFT" }
+
             if from_account_link.message_id_mapping.where(provider_thread_id: message_added.message.thread_id).size > 0 or
                 message_added.message.label_ids.any? { |x| label_mappings[x] }
               from_message_ids = from_message_ids + [message_added.message]
