@@ -114,6 +114,7 @@ class SyncController < ApplicationController
     threads = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads
 
     message_count = if threads 
+      puts "Threads matched #{from_sync_labels} on #{from_account_link}: #{threads}"
       thread_history_id = threads.map { |x| x.history_id.to_i }.max
 
       from_message_ids = threads_to_message_ids(from_gmail, threads)
@@ -124,6 +125,7 @@ class SyncController < ApplicationController
 
       message_count
     else
+      puts "No threads matched #{from_sync_labels} on #{from_account_link}"
       0
     end
 
