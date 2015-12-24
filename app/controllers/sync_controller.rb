@@ -121,23 +121,25 @@ class SyncController < ApplicationController
 
   # GmailServive documentation: https://github.com/google/google-api-ruby-client/blob/master/generated/google/apis/gmail_v1/service.rb
   def sync_via_query(from_account_link, to_account_link, from_gmail, to_gmail, from_sync_labels, label_mappings, extra_labels)
-    threads = from_gmail.list_user_threads('me', label_ids: from_sync_labels.map { |x| x.id }).threads
+    message_count = from_sync_labels.map { |from_sync_label|
+      threads = from_gmail.list_user_threads('me', label_ids: [ from_sync_label.id ]).threads
 
-    message_count = if threads 
-      puts "Threads matched #{from_sync_labels} on #{from_account_link}: #{threads}"
-      thread_history_id = threads.map { |x| x.history_id.to_i }.max
+      if threads
+        puts "Threads matched #{from_sync_labels} on #{from_account_link}: #{threads}"
+        thread_history_id = threads.map { |x| x.history_id.to_i }.max
 
-      from_message_ids = threads_to_message_ids(from_gmail, threads)
-      message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, extra_labels)
+        from_message_ids = threads_to_message_ids(from_gmail, threads)
+        message_count = sync_messages(from_account_link, to_account_link, from_gmail, to_gmail, from_message_ids, label_mappings, extra_labels)
 
-      from_account_link.history_id = thread_history_id
-      from_account_link.save
+        from_account_link.history_id = thread_history_id
+        from_account_link.save
 
-      message_count
-    else
-      puts "No threads matched #{from_sync_labels} on #{from_account_link}"
-      0
-    end
+        message_count
+      else
+        puts "No threads matched #{from_sync_labels} on #{from_account_link}"
+        0
+      end
+    }.sum
 
     result = {
       message_count: message_count,
