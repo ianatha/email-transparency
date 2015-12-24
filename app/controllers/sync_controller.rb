@@ -85,7 +85,17 @@ class SyncController < ApplicationController
                 transcribed_message.thread_id = mapped_thread_id.from_thread_id
               end
 
-              inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+              inserted_message = nil
+              begin
+                inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+              rescue Google::Apis::ClientError => e
+                if e.message == "notFound"
+                  transcribed_message.thread_id = nil
+                  inserted_message = to_gmail.insert_user_message('me', transcribed_message, internal_date_source: "dateHeader", deleted: false)
+                else
+                  raise e
+                end
+              end
 
               message_count = message_count + 1
 
