@@ -14,6 +14,9 @@ class HomeController < ApplicationController
   end
 
   def pubsub
+    render json: true, status: 200
+    return
+    
     subscription = params[:subscription]
     if subscription == "projects/email-transparency/subscriptions/heroku-backend"
       gmail_notification = JSON.parse(Base64.decode64(params[:message][:data]))
