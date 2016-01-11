@@ -38,6 +38,10 @@ class SyncController < ApplicationController
         from_gmail.get_user_message('me', message_id.id, format: "RAW") do |message, err|
           raise err if err
 
+          if message.label_ids == nil
+            message.label_ids = []
+          end
+          
           next if message.label_ids.any? { |x| x == "DRAFT" }
 
           email_message_id = get_message_id(message.raw).value
